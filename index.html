@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1B3A2F">
+<title>Training Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --field:#1B3A2F;
+    --raised:#234A3B;
+    --edge:#2F5F4C;
+    --chalk:#F2EDE1;
+    --dim:#9DBAAB;
+    --moss:#7CB86A;
+    --marigold:#E8AC3E;
+    --coral:#E0614C;
+    --slate:#3D6555;
+    --deep:#12241C;
+    --disp:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+    --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--field);color:var(--chalk);
+    font-family:var(--body);font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:600px;margin:0 auto;padding:22px 16px 90px}
+  button{font-family:inherit}
+  :focus-visible{outline:2.5px solid var(--marigold);outline-offset:2px}
+
+  /* ============ masthead ============ */
+  .top{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:16px}
+  .top h1{
+    font-family:var(--disp);font-weight:800;
+    font-size:clamp(1.9rem,8vw,2.5rem);line-height:.94;letter-spacing:-0.035em;
+    margin:0;font-variation-settings:"wdth" 88;
+  }
+  .top .sig{font-size:.76rem;color:var(--dim);text-align:right;line-height:1.35;flex:0 0 auto}
+
+  /* week pulse */
+  .pulse{display:flex;align-items:center;gap:9px;padding:12px 14px;background:var(--raised);margin-bottom:22px}
+  .pulse .dots{display:flex;gap:5px;flex:1}
+  .pulse .dots i{flex:1;height:7px;background:var(--edge)}
+  .pulse .dots i.full{background:var(--moss)}
+  .pulse .dots i.part{background:var(--marigold)}
+  .pulse .dots i.miss{background:var(--coral)}
+  .pulse .n{font-family:var(--disp);font-weight:700;font-size:1.05rem;letter-spacing:-0.02em;flex:0 0 auto}
+  .pulse .n span{color:var(--dim);font-weight:500;font-size:.8rem}
+
+  /* ============ nav ============ */
+  nav{display:flex;gap:3px;background:var(--raised);padding:3px;margin-bottom:26px}
+  nav button{
+    flex:1;background:none;border:0;color:var(--dim);
+    font-size:.9rem;font-weight:500;padding:10px 4px;cursor:pointer;
+  }
+  nav button[aria-selected="true"]{background:var(--chalk);color:var(--deep);font-weight:600}
+
+  .view{display:none}
+  .view.on{display:block}
+  section{margin-bottom:38px}
+  h2{font-family:var(--disp);font-weight:700;font-size:1.35rem;letter-spacing:-0.025em;margin:0 0 6px}
+  .hint{font-size:.85rem;color:var(--dim);margin:0 0 18px;max-width:46ch}
+
+  /* ============ calendar ============ */
+  .calbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .calbar h3{
+    font-family:var(--disp);font-weight:700;font-size:1.55rem;letter-spacing:-0.03em;margin:0;
+    font-variation-settings:"wdth" 90;
+  }
+  .calbar h3 em{font-style:normal;color:var(--dim);font-weight:500}
+  .calbar button{
+    background:none;border:1.5px solid var(--edge);color:var(--chalk);
+    width:38px;height:38px;font-size:1.1rem;cursor:pointer;line-height:1;
+  }
+  .calbar button:hover{background:var(--edge)}
+
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
+  .dow span{font-size:.66rem;color:var(--dim);text-align:center;letter-spacing:.06em}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cell{
+    aspect-ratio:1/1;border:0;background:var(--raised);color:var(--dim);
+    cursor:pointer;padding:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:1px;
+  }
+  .cell.blank{background:none;cursor:default}
+  .cell .num{font-family:var(--disp);font-weight:700;font-size:1.05rem;line-height:1;letter-spacing:-0.02em}
+  .cell .tag{font-size:.56rem;letter-spacing:.05em;opacity:.75;line-height:1}
+  .cell.full{background:var(--moss);color:var(--deep)}
+  .cell.part{background:var(--marigold);color:var(--deep)}
+  .cell.miss{background:var(--coral);color:var(--deep)}
+  .cell.rest{background:var(--slate);color:var(--dim)}
+  .cell.today{box-shadow:inset 0 0 0 2.5px var(--chalk)}
+  .cell.sel{box-shadow:inset 0 0 0 2.5px var(--marigold)}
+  .cell.today.sel{box-shadow:inset 0 0 0 2.5px var(--marigold)}
+
+  .key{display:flex;flex-wrap:wrap;gap:5px;margin-top:14px}
+  .key span{font-size:.72rem;color:var(--deep);background:var(--edge);padding:4px 9px}
+  .key span.g{background:var(--moss)}
+  .key span.y{background:var(--marigold)}
+  .key span.r{background:var(--coral)}
+  .key span.s{background:var(--slate);color:var(--chalk)}
+
+  /* ============ day panel ============ */
+  .panel{background:var(--raised);margin-top:24px;padding:20px 18px 22px}
+  .panel .pday{font-family:var(--disp);font-weight:700;font-size:1.3rem;letter-spacing:-0.025em;margin:0}
+  .panel .pkind{font-size:.8rem;color:var(--marigold);font-weight:600;letter-spacing:.04em;margin:2px 0 18px}
+  .glabel{font-size:.72rem;color:var(--dim);letter-spacing:.09em;margin:22px 0 8px}
+  .glabel:first-of-type{margin-top:0}
+
+  ul.items{list-style:none;margin:0;padding:0}
+  ul.items li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--edge)}
+  ul.items li:last-child{border-bottom:0}
+  .box{
+    flex:0 0 auto;width:26px;height:26px;border:2px solid var(--edge);background:none;
+    cursor:pointer;padding:0;position:relative;margin-top:1px;
+  }
+  .box[aria-pressed="true"]{background:var(--moss);border-color:var(--moss)}
+  .box[aria-pressed="true"]::after{
+    content:"";position:absolute;left:8px;top:3px;width:7px;height:13px;
+    border:solid var(--deep);border-width:0 2.5px 2.5px 0;transform:rotate(42deg);
+  }
+  ul.items .txt{flex:1;min-width:0}
+  ul.items .nm{font-weight:500;font-size:.97rem;color:var(--chalk)}
+  ul.items .nm a{color:var(--chalk);text-decoration:none;border-bottom:1.5px solid var(--marigold);padding-bottom:1px}
+  ul.items .nm a:hover{color:var(--marigold)}
+  ul.items .sets{display:block;font-size:.79rem;color:var(--dim);margin-top:2px}
+  ul.items li.on .nm,ul.items li.on .nm a{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--edge)}
+
+  .ratio{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--edge);
+    font-family:var(--disp);font-weight:700;font-size:1.05rem;letter-spacing:-0.02em}
+  .ratio em{font-style:normal;color:var(--moss)}
+
+  /* ============ plan tab ============ */
+  ol.lifts{list-style:none;margin:0;padding:0}
+  ol.lifts li{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+    padding:11px 0;border-bottom:1px solid var(--edge)}
+  ol.lifts a{color:var(--chalk);font-weight:500;font-size:.98rem;text-decoration:none;
+    border-bottom:1.5px solid var(--marigold);padding-bottom:1px}
+  ol.lifts a:hover{color:var(--marigold)}
+  .sets{font-size:.83rem;color:var(--dim);white-space:nowrap}
+  dl.meals{margin:0}
+  dl.meals dt{font-size:.75rem;color:var(--marigold);font-weight:600;letter-spacing:.06em;
+    margin-top:20px;padding-top:15px;border-top:1px solid var(--edge)}
+  dl.meals dt:first-child{border-top:0;margin-top:0;padding-top:0}
+  dl.meals dd{margin:5px 0 0;max-width:50ch;font-size:.95rem}
+  .macro{display:block;font-size:.78rem;color:var(--dim);margin-top:3px}
+  .note{background:var(--raised);padding:17px 18px;margin-top:22px}
+  .note p{margin:0;max-width:48ch;font-size:.93rem}
+  .note p+p{margin-top:11px}
+  .note b{color:var(--marigold);font-weight:600}
+  .totals{font-family:var(--disp);font-weight:700;font-size:1.05rem;letter-spacing:-0.02em;
+    margin-top:22px;padding-top:14px;border-top:1px solid var(--edge)}
+
+  /* ============ progress ============ */
+  .row{display:flex;gap:7px;margin-bottom:9px;flex-wrap:wrap}
+  input,select{
+    font-family:var(--body);font-size:.93rem;color:var(--chalk);padding:11px 12px;
+    border:1.5px solid var(--edge);background:var(--raised);border-radius:0;min-width:0;flex:1;
+  }
+  select{flex-basis:100%}
+  input::placeholder{color:var(--dim)}
+  input[type=date]{color-scheme:dark}
+  button.save{font-size:.92rem;font-weight:600;color:var(--deep);background:var(--marigold);
+    border:0;padding:11px 22px;cursor:pointer;flex:0 0 auto}
+  button.save:hover{background:var(--chalk)}
+  .stat{font-family:var(--disp);font-weight:700;font-size:1.15rem;letter-spacing:-0.02em;
+    color:var(--marigold);margin-top:10px}
+  .chart{margin:16px 0 4px}
+  .chart svg{width:100%;height:auto;display:block}
+  .axis{font-family:var(--body);font-size:11px;fill:var(--dim)}
+  .empty{font-size:.85rem;color:var(--dim);background:var(--raised);padding:26px 18px;
+    text-align:center;margin:16px 0}
+  ul.log{list-style:none;margin:14px 0 0;padding:0}
+  ul.log li{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:9px 0;border-bottom:1px solid var(--edge);font-size:.92rem}
+  ul.log .when{color:var(--dim);font-size:.82rem}
+  ul.log .what{flex:1}
+  ul.log button{background:none;border:0;color:var(--dim);font-size:1.15rem;cursor:pointer;padding:2px 6px}
+  ul.log button:hover{color:var(--coral)}
+
+  footer{font-size:.78rem;color:var(--dim);margin-top:40px;border-top:1px solid var(--edge);
+    padding-top:16px;max-width:50ch}
+  .warn{font-size:.8rem;color:var(--deep);background:var(--marigold);padding:11px 13px;
+    margin-bottom:18px;display:none}
+
+  @media (prefers-reduced-motion:no-preference){
+    .cell,.box,nav button{transition:background-color .16s ease,color .16s ease}
+    .box[aria-pressed="true"]{animation:pop .22s ease}
+    @keyframes pop{0%{transform:scale(.82)}60%{transform:scale(1.09)}100%{transform:scale(1)}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>Training<br>planner</h1>
+    <div class="sig">Dumbbells &amp;<br>a pull-up bar<br>3 lifts a week</div>
+  </div>
+
+  <div class="pulse">
+    <div class="dots" id="pulseDots"></div>
+    <div class="n" id="pulseN">—<span> this week</span></div>
+  </div>
+
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-view="cal">Calendar</button>
+    <button role="tab" aria-selected="false" data-view="plan">The plan</button>
+    <button role="tab" aria-selected="false" data-view="prog">Progress</button>
+  </nav>
+
+  <div class="warn" id="warn">Saving is unavailable here, so entries will disappear when you close this. Open it inside Claude to keep your history.</div>
+
+  <!-- CALENDAR -->
+  <div class="view on" id="v-cal">
+    <div class="calbar">
+      <button id="prevM" aria-label="Previous month">&lsaquo;</button>
+      <h3 id="monthName">—</h3>
+      <button id="nextM" aria-label="Next month">&rsaquo;</button>
+    </div>
+    <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+    <div class="grid" id="grid"></div>
+    <div class="key">
+      <span class="g">all done</span><span class="y">partly</span>
+      <span class="r">mostly missed</span><span class="s">rest</span>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+
+  <!-- PLAN -->
+  <div class="view" id="v-plan">
+    <section>
+      <h2>Workout A</h2>
+      <p class="hint">About 45 minutes. Rest 90 seconds between sets. Tap any name for a form video.</p>
+      <ol class="lifts" id="planA"></ol>
+    </section>
+    <section>
+      <h2>Workout B</h2>
+      <p class="hint">Dumbbells, pull-up bar, and a chair for your back foot.</p>
+      <ol class="lifts" id="planB"></ol>
+      <div class="note">
+        <p><b>The part that actually builds muscle.</b> The last two reps of every set should be hard — not impossible, but close. When you finish the top of the rep range with room to spare, go up in weight next session.</p>
+        <p><b>Working up to a pull-up.</b> Jump or step up so your chin clears the bar, then lower as slowly as you can. Lowering builds the strength to pull long before you can pull.</p>
+      </div>
+    </section>
+    <section>
+      <h2>Eating day</h2>
+      <p class="hint">Same every day, with two swaps marked below.</p>
+      <dl class="meals">
+        <dt>7–9 am</dt>
+        <dd>8 oz steak, 1 cup mashed potatoes. Cook the potatoes with broth and a little olive oil instead of butter and cream.
+          <span class="macro">≈ 900 cal · 57 g protein</span></dd>
+        <dt>After lifting, within 2 hours</dt>
+        <dd>1 cup Greek yogurt, berries, drizzle of honey. Lifting days only.
+          <span class="macro">≈ 250 cal · 25 g protein</span></dd>
+        <dt>Mid-afternoon</dt>
+        <dd>¼ cup trail mix with an apple or banana. Cottage cheese with pineapple on non-lifting days.
+          <span class="macro">≈ 200–300 cal</span></dd>
+        <dt>6–7 pm</dt>
+        <dd>2 eggs, toast, sautéed vegetables. Tuesday and Saturday: 5 oz salmon with rice instead.
+          <span class="macro">≈ 350 cal · 16 g protein · salmon nights ≈ 450 cal · 35 g</span></dd>
+        <dt>Anytime</dt>
+        <dd>2 tbsp chia seeds in water, plus water through the day.</dd>
+      </dl>
+      <p class="totals">≈ 1,800 cal · ≈ 100 g protein</p>
+      <div class="note">
+        <p><b>Steak rotation.</b> Ribeye three days a week, top sirloin or flank the other four. Same breakfast, roughly half the saturated fat.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="view" id="v-prog">
+    <section>
+      <h2>Weekly weigh-in</h2>
+      <p class="hint">Same morning each week, before eating. Half a pound a week is the target.</p>
+      <div class="row">
+        <input type="date" id="wDate" aria-label="Date">
+        <input type="number" id="wLbs" placeholder="lb" step="0.1" inputmode="decimal" aria-label="Weight in pounds">
+        <button class="save" id="wSave">Log</button>
+      </div>
+      <div class="stat" id="wStat"></div>
+      <div class="chart" id="wChart"></div>
+      <ul class="log" id="wLog"></ul>
+    </section>
+    <section>
+      <h2>Lift log</h2>
+      <p class="hint">Log your hardest set. The score blends weight and reps, so more reps at the same dumbbell still counts as progress.</p>
+      <div class="row"><select id="lEx" aria-label="Exercise"></select></div>
+      <div class="row">
+        <input type="number" id="lWt" placeholder="lb per hand" step="0.5" inputmode="decimal" aria-label="Weight">
+        <input type="number" id="lReps" placeholder="reps" inputmode="numeric" aria-label="Reps">
+        <button class="save" id="lSave">Log</button>
+      </div>
+      <div class="stat" id="lPr"></div>
+      <div class="chart" id="lChart"></div>
+      <ul class="log" id="lLog"></ul>
+    </section>
+  </div>
+
+  <footer>Progress is rarely a straight line. A flat week is normal; three flat weeks is a signal to eat a little more. General fitness guidance, not medical advice.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY = "lean-muscle-planner";
+  var ANCHOR = "2026-09-07";
+
+  var WORKOUT_A = [
+    ["Goblet squat","3 × 8–12","goblet+squat+proper+form"],
+    ["Dumbbell floor press","3 × 8–12","dumbbell+floor+press+proper+form"],
+    ["One-arm dumbbell row","3 × 10 each","one+arm+dumbbell+row+proper+form"],
+    ["Dumbbell Romanian deadlift","3 × 10","dumbbell+romanian+deadlift+proper+form"],
+    ["Dumbbell curl","3 × 12","dumbbell+bicep+curl+proper+form"],
+    ["Side plank","3 × 20 sec each","side+plank+proper+form"],
+    ["Plank","3 × 30 sec","forearm+plank+proper+form"]
+  ];
+  var WORKOUT_B = [
+    ["Bulgarian split squat","3 × 8 each","bulgarian+split+squat+proper+form"],
+    ["Dumbbell overhead press","3 × 8–12","dumbbell+overhead+press+proper+form"],
+    ["Negative pull-up","3 × 3–5","negative+pull+up+beginner+progression"],
+    ["Dumbbell glute bridge","3 × 12","dumbbell+glute+bridge+proper+form"],
+    ["Overhead tricep extension","3 × 12","dumbbell+overhead+tricep+extension+proper+form"],
+    ["Hanging knee raise","3 × 8–12","hanging+knee+raise+proper+form"],
+    ["Dead bug","3 × 10 each","dead+bug+exercise+proper+form"]
+  ];
+  var LIFT_NAMES = WORKOUT_A.concat(WORKOUT_B).map(function(x){ return x[0]; });
+  var MONTHS = ["January","February","March","April","May","June","July",
+                "August","September","October","November","December"];
+  var DAYNAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+  var data = { bodyweight:[], lifts:[], done:{} };
+  var viewMonth, selected;
+
+  function iso(d){
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  function today(){ return iso(new Date()); }
+  function parse(s){ return new Date(s+"T12:00:00"); }
+  function addDays(s,n){ var d=parse(s); d.setDate(d.getDate()+n); return iso(d); }
+  function mondayOf(s){ var d=parse(s); d.setDate(d.getDate()-((d.getDay()+6)%7)); return iso(d); }
+  function fmtShort(s){ var p=s.split("-"); return +p[1]+"/"+ +p[2]; }
+  function fmtLong(s){ var d=parse(s); return DAYNAMES[d.getDay()]+", "+MONTHS[d.getMonth()]+" "+d.getDate(); }
+
+  function dayPlan(s){
+    var dow=(parse(s).getDay()+6)%7;
+    if(dow===6) return {type:"rest"};
+    if(dow===1||dow===3||dow===5) return {type:"walk"};
+    var weeks=Math.round((parse(mondayOf(s))-parse(ANCHOR))/604800000);
+    var even=(((weeks%2)+2)%2)===0;
+    var seq=even?{0:"A",2:"B",4:"A"}:{0:"B",2:"A",4:"B"};
+    return {type:"lift",letter:seq[dow]};
+  }
+
+  function items(s){
+    var p=dayPlan(s), dow=(parse(s).getDay()+6)%7, out=[];
+    if(p.type==="lift"){
+      (p.letter==="A"?WORKOUT_A:WORKOUT_B).forEach(function(e,i){
+        out.push({id:"t"+i,group:"Workout "+p.letter,name:e[0],sets:e[1],q:e[2]});
+      });
+    } else if(p.type==="walk"){
+      out.push({id:"t0",group:"Movement",name:"Walk 25–30 minutes",sets:"Easy pace — recovery, not a workout"});
+    } else {
+      out.push({id:"t0",group:"Movement",name:"Rest day",sets:"Nothing to do. Recovery is when muscle is actually built."});
+    }
+    out.push({id:"m0",group:"Eating",name:"Steak and potatoes",sets:"7–9 am · ≈ 900 cal, 57 g protein"});
+    if(p.type==="lift") out.push({id:"m1",group:"Eating",name:"Greek yogurt with berries",sets:"Within 2 hours of lifting · 25 g protein"});
+    out.push({id:"m2",group:"Eating",name:p.type==="lift"?"Trail mix and fruit":"Cottage cheese and pineapple",sets:"Mid-afternoon"});
+    out.push({id:"m3",group:"Eating",name:(dow===1||dow===5)?"Salmon and rice":"Eggs, toast, vegetables",sets:"6–7 pm"});
+    out.push({id:"m4",group:"Eating",name:"Chia seeds and water",sets:"2 tbsp, anytime"});
+    return out;
+  }
+
+  function ratio(s){
+    var all=items(s), rest=dayPlan(s).type==="rest";
+    var scored=all.filter(function(i){ return !(rest && i.id==="t0"); });
+    var d=data.done[s]||[];
+    var hit=scored.filter(function(i){ return d.indexOf(i.id)>-1; }).length;
+    return {hit:hit,total:scored.length,pct:scored.length?hit/scored.length:0};
+  }
+
+  function stateOf(s){
+    var p=dayPlan(s), r=ratio(s);
+    if(r.pct>=0.999) return "full";
+    if(r.pct>=0.5) return "part";
+    if(r.hit>0) return "miss";
+    if(p.type==="rest") return "rest";
+    if(s<today()) return "miss";
+    return "";
+  }
+
+  function hasStore(){ return typeof window.storage!=="undefined" && window.storage; }
+  function load(){
+    if(!hasStore()){ document.getElementById("warn").style.display="block"; return Promise.resolve(); }
+    return window.storage.get(KEY).then(function(r){
+      if(r&&r.value) data=JSON.parse(r.value);
+      data.bodyweight=data.bodyweight||[]; data.lifts=data.lifts||[]; data.done=data.done||{};
+    }).catch(function(){});
+  }
+  function save(){
+    if(!hasStore()) return Promise.resolve();
+    return window.storage.set(KEY,JSON.stringify(data)).catch(function(){
+      document.getElementById("warn").style.display="block";
+    });
+  }
+  function esc(s){ return String(s).replace(/[<>&"]/g,function(c){
+    return {"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]; }); }
+
+  function renderPulse(){
+    var mon=mondayOf(today()), html="", full=0;
+    for(var i=0;i<7;i++){
+      var s=addDays(mon,i), st=stateOf(s);
+      if(st==="full") full++;
+      html+='<i class="'+(st==="rest"?"":st)+'"></i>';
+    }
+    document.getElementById("pulseDots").innerHTML=html;
+    document.getElementById("pulseN").innerHTML=full+'<span> / 7 this week</span>';
+  }
+
+  function renderCal(){
+    var y=viewMonth.getFullYear(), m=viewMonth.getMonth();
+    document.getElementById("monthName").innerHTML=MONTHS[m]+' <em>'+y+'</em>';
+    var lead=(new Date(y,m,1).getDay()+6)%7;
+    var days=new Date(y,m+1,0).getDate();
+    var html="";
+    for(var i=0;i<lead;i++) html+='<div class="cell blank"></div>';
+    for(var d=1;d<=days;d++){
+      var s=iso(new Date(y,m,d)), p=dayPlan(s);
+      var cls="cell "+stateOf(s);
+      if(s===today()) cls+=" today";
+      if(s===selected) cls+=" sel";
+      var tag=p.type==="lift"?p.letter:(p.type==="walk"?"walk":"rest");
+      html+='<button class="'+cls+'" data-day="'+s+'" aria-label="'+fmtLong(s)+'">'+
+            '<span class="num">'+d+'</span><span class="tag">'+tag+'</span></button>';
+    }
+    document.getElementById("grid").innerHTML=html;
+    renderPulse();
+  }
+
+  function renderPanel(){
+    var s=selected, p=dayPlan(s), r=ratio(s);
+    var list=items(s), done=data.done[s]||[];
+    var kind=p.type==="lift"?("WORKOUT "+p.letter):(p.type==="walk"?"WALK DAY":"REST DAY");
+    var html='<p class="pday">'+fmtLong(s)+'</p><p class="pkind">'+kind+'</p>';
+    var group=null, open=false;
+    list.forEach(function(it){
+      if(it.group!==group){
+        if(open) html+='</ul>';
+        html+='<div class="glabel">'+esc(it.group).toUpperCase()+'</div><ul class="items">';
+        group=it.group; open=true;
+      }
+      var on=done.indexOf(it.id)>-1;
+      var nm=it.q?'<a href="https://www.youtube.com/results?search_query='+it.q+'" target="_blank" rel="noopener">'+esc(it.name)+'</a>':esc(it.name);
+      html+='<li class="'+(on?"on":"")+'">'+
+        '<button class="box" data-item="'+it.id+'" aria-pressed="'+on+'" aria-label="Mark '+esc(it.name)+' done"></button>'+
+        '<span class="txt"><span class="nm">'+nm+'</span><span class="sets">'+esc(it.sets)+'</span></span></li>';
+    });
+    if(open) html+='</ul>';
+    html+='<p class="ratio">'+(r.pct>=0.999?'<em>'+r.hit+' of '+r.total+' — full day</em>':r.hit+' of '+r.total+' done')+'</p>';
+    document.getElementById("panel").innerHTML=html;
+  }
+
+  function lineChart(pts,unit){
+    if(!pts.length) return '<div class="empty">No entries yet. Your first one starts the line.</div>';
+    if(pts.length===1) return '<div class="empty">One entry logged: '+pts[0].y+' '+unit+'. Log another to see the trend.</div>';
+    var W=600,H=220,L=40,R=12,T=16,B=26,iw=W-L-R,ih=H-T-B;
+    var ys=pts.map(function(p){return p.y;});
+    var lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys);
+    var pad=(hi-lo)*0.25||Math.max(hi*0.05,1); lo-=pad; hi+=pad;
+    var X=function(i){return L+iw*i/(pts.length-1);};
+    var Y=function(v){return T+ih-ih*(v-lo)/(hi-lo);};
+    var line="",dots="",grid="",labels="";
+    pts.forEach(function(p,i){
+      line+=(i?" L":"M")+X(i).toFixed(1)+" "+Y(p.y).toFixed(1);
+      dots+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="4" fill="var(--field)" stroke="var(--marigold)" stroke-width="2.5"/>';
+    });
+    var area=line+" L"+X(pts.length-1).toFixed(1)+" "+(T+ih)+" L"+X(0).toFixed(1)+" "+(T+ih)+" Z";
+    [lo+(hi-lo)*0.15,(lo+hi)/2,hi-(hi-lo)*0.15].forEach(function(v){
+      var y=Y(v).toFixed(1);
+      grid+='<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'" stroke="var(--edge)"/>'+
+            '<text class="axis" x="'+(L-8)+'" y="'+(+y+4)+'" text-anchor="end">'+Math.round(v)+'</text>';
+    });
+    [0,Math.floor((pts.length-1)/2),pts.length-1].filter(function(v,i,a){return a.indexOf(v)===i;})
+      .forEach(function(i){
+        var a=i===0?"start":(i===pts.length-1?"end":"middle");
+        labels+='<text class="axis" x="'+X(i).toFixed(1)+'" y="'+(H-7)+'" text-anchor="'+a+'">'+fmtShort(pts[i].x)+'</text>';
+      });
+    return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Progress chart">'+grid+
+      '<path d="'+area+'" fill="var(--marigold)" opacity=".12"/>'+
+      '<path d="'+line+'" fill="none" stroke="var(--marigold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+      dots+labels+'</svg>';
+  }
+
+  function renderWeight(){
+    var bw=data.bodyweight.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+    document.getElementById("wChart").innerHTML=lineChart(bw.map(function(e){return {x:e.date,y:e.lbs};}),"lb");
+    var st=document.getElementById("wStat");
+    if(bw.length>1){
+      var diff=+(bw[bw.length-1].lbs-bw[0].lbs).toFixed(1);
+      st.textContent=bw[bw.length-1].lbs+" lb · "+(diff>0?"+":"")+diff+" lb since "+fmtShort(bw[0].date);
+    } else st.textContent=bw.length?bw[0].lbs+" lb — starting point set":"";
+    document.getElementById("wLog").innerHTML=bw.slice().reverse().slice(0,8).map(function(e){
+      return '<li><span class="when">'+fmtShort(e.date)+'</span><span class="what">'+e.lbs+' lb</span>'+
+             '<button data-delw="'+esc(e.date)+'" aria-label="Delete">&times;</button></li>';
+    }).join("");
+  }
+
+  function scoreOf(w,r){ return w>0?Math.round(w*(1+r/30)):r; }
+
+  function renderLifts(){
+    var ex=document.getElementById("lEx").value;
+    var rows=data.lifts.filter(function(e){return e.ex===ex;}).sort(function(a,b){return a.date<b.date?-1:1;});
+    document.getElementById("lChart").innerHTML=lineChart(rows.map(function(e){return {x:e.date,y:scoreOf(e.wt,e.reps)};}),"pts");
+    var pr=document.getElementById("lPr");
+    if(rows.length){
+      var best=rows.reduce(function(a,b){return scoreOf(b.wt,b.reps)>scoreOf(a.wt,a.reps)?b:a;});
+      pr.textContent="Best: "+(best.wt>0?best.wt+" lb × ":"")+best.reps+" reps · "+fmtShort(best.date);
+    } else pr.textContent="";
+    document.getElementById("lLog").innerHTML=rows.slice().reverse().slice(0,8).map(function(e){
+      return '<li><span class="when">'+fmtShort(e.date)+'</span>'+
+             '<span class="what">'+(e.wt>0?e.wt+' lb × ':'')+e.reps+' reps</span>'+
+             '<button data-dell="'+esc(e.id)+'" aria-label="Delete">&times;</button></li>';
+    }).join("");
+  }
+
+  function renderPlanTab(){
+    function rows(w){
+      return w.map(function(e){
+        return '<li><a href="https://www.youtube.com/results?search_query='+e[2]+'" target="_blank" rel="noopener">'+
+               esc(e[0])+'</a><span class="sets">'+e[1]+'</span></li>';
+      }).join("");
+    }
+    document.getElementById("planA").innerHTML=rows(WORKOUT_A);
+    document.getElementById("planB").innerHTML=rows(WORKOUT_B);
+  }
+
+  document.querySelectorAll("nav button").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll("nav button").forEach(function(x){x.setAttribute("aria-selected","false");});
+      b.setAttribute("aria-selected","true");
+      document.querySelectorAll(".view").forEach(function(v){v.classList.remove("on");});
+      document.getElementById("v-"+b.dataset.view).classList.add("on");
+    });
+  });
+
+  document.getElementById("prevM").addEventListener("click",function(){
+    viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()-1,1); renderCal();
+  });
+  document.getElementById("nextM").addEventListener("click",function(){
+    viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,1); renderCal();
+  });
+
+  document.body.addEventListener("click",function(e){
+    var cell=e.target.closest?e.target.closest("[data-day]"):null;
+    if(cell){ selected=cell.dataset.day; renderCal(); renderPanel(); return; }
+    var box=e.target.closest?e.target.closest("[data-item]"):null;
+    if(box){
+      var id=box.dataset.item, arr=data.done[selected]||[], at=arr.indexOf(id);
+      if(at>-1) arr.splice(at,1); else arr.push(id);
+      if(arr.length) data.done[selected]=arr; else delete data.done[selected];
+      save().then(function(){ renderCal(); renderPanel(); });
+      return;
+    }
+    var t=e.target;
+    if(t.dataset&&t.dataset.delw){
+      data.bodyweight=data.bodyweight.filter(function(x){return x.date!==t.dataset.delw;});
+      save().then(renderWeight);
+    }
+    if(t.dataset&&t.dataset.dell){
+      data.lifts=data.lifts.filter(function(x){return x.id!==t.dataset.dell;});
+      save().then(renderLifts);
+    }
+  });
+
+  document.getElementById("wSave").addEventListener("click",function(){
+    var d=document.getElementById("wDate").value||today();
+    var v=parseFloat(document.getElementById("wLbs").value);
+    if(!v||v<=0||v>600) return;
+    data.bodyweight=data.bodyweight.filter(function(e){return e.date!==d;});
+    data.bodyweight.push({date:d,lbs:+v.toFixed(1)});
+    document.getElementById("wLbs").value="";
+    save().then(renderWeight);
+  });
+
+  document.getElementById("lSave").addEventListener("click",function(){
+    var wt=parseFloat(document.getElementById("lWt").value)||0;
+    var r=parseInt(document.getElementById("lReps").value,10);
+    if(!r||r<=0||r>500) return;
+    data.lifts.push({id:String(Date.now()),date:today(),ex:document.getElementById("lEx").value,wt:wt,reps:r});
+    document.getElementById("lReps").value="";
+    save().then(renderLifts);
+  });
+  document.getElementById("lEx").addEventListener("change",renderLifts);
+
+  selected=today();
+  viewMonth=new Date(); viewMonth.setDate(1);
+  document.getElementById("wDate").value=today();
+  document.getElementById("lEx").innerHTML=LIFT_NAMES.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");
+  renderPlanTab();
+  load().then(function(){ renderCal(); renderPanel(); renderWeight(); renderLifts(); });
+})();
+</script>
+</body>
+</html>
