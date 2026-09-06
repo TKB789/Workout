@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1C3A2E">
+<title>Training Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FCF8F1;
+    --linen:#F2EBDE;
+    --rule:#DFD5C4;
+    --ink:#1C3A2E;
+    --ink2:#5C7268;
+    --sage:#6F9B5C;
+    --apricot:#E09A45;
+    --rose:#C4685C;
+    --faint:#E4DED0;
+    --disp:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+    --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--body);font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased;position:relative;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+    mix-blend-mode:multiply;
+  }
+  .wrap{max-width:580px;margin:0 auto;padding:16px 14px 90px;position:relative;z-index:1}
+  button{font-family:inherit}
+  :focus-visible{outline:2.5px solid var(--apricot);outline-offset:2px}
+
+  /* ===== banner ===== */
+  .banner{background:var(--ink);color:var(--paper);border-radius:20px;padding:22px 20px 18px;margin-bottom:14px}
+  .banner h1{
+    font-family:var(--disp);font-weight:800;font-size:clamp(1.75rem,7.5vw,2.2rem);
+    line-height:.95;letter-spacing:-0.035em;margin:0;font-variation-settings:"wdth" 86;
+  }
+  .banner .sub{font-size:.79rem;color:#A9C4B4;margin-top:6px}
+  .pulse{display:flex;align-items:center;gap:10px;margin-top:18px}
+  .pulse .dots{display:flex;gap:4px;flex:1}
+  .pulse .dots i{flex:1;height:6px;border-radius:99px;background:rgba(252,248,241,.16)}
+  .pulse .dots i.full{background:var(--sage)}
+  .pulse .dots i.part{background:var(--apricot)}
+  .pulse .dots i.miss{background:var(--rose)}
+  .pulse .n{font-family:var(--disp);font-weight:700;font-size:.95rem;letter-spacing:-0.01em;flex:0 0 auto;color:#DCE8E0}
+
+  /* ===== nav ===== */
+  nav{display:flex;gap:3px;background:var(--linen);padding:4px;border-radius:99px;margin-bottom:26px}
+  nav button{flex:1;background:none;border:0;border-radius:99px;color:var(--ink2);
+    font-size:.88rem;font-weight:500;padding:9px 4px;cursor:pointer}
+  nav button[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:600;
+    box-shadow:0 1px 2px rgba(28,58,46,.08)}
+
+  .view{display:none}
+  .view.on{display:block}
+  section{margin-bottom:36px}
+  h2{font-family:var(--disp);font-weight:700;font-size:1.3rem;letter-spacing:-0.025em;margin:0 0 6px}
+  .hint{font-size:.85rem;color:var(--ink2);margin:0 0 18px;max-width:46ch}
+
+  /* ===== calendar ===== */
+  .calbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .calbar h3{font-family:var(--disp);font-weight:700;font-size:1.45rem;letter-spacing:-0.03em;margin:0;
+    font-variation-settings:"wdth" 90}
+  .calbar h3 em{font-style:normal;color:var(--ink2);font-weight:500}
+  .calbar button{background:none;border:1.5px solid var(--rule);border-radius:50%;color:var(--ink);
+    width:36px;height:36px;font-size:1.05rem;cursor:pointer;line-height:1}
+  .calbar button:hover{background:var(--linen)}
+
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+  .dow span{font-size:.65rem;color:var(--ink2);text-align:center;letter-spacing:.05em}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cell{
+    background:none;border:0;padding:5px 0 7px;cursor:pointer;border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  .cell.blank{cursor:default}
+  .ring{position:relative;width:100%;max-width:40px}
+  .ring svg{display:block;width:100%;height:auto}
+  .ring .num{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--disp);font-weight:700;font-size:.88rem;letter-spacing:-0.02em;color:var(--ink2);
+  }
+  .cell.done .ring .num{color:var(--ink)}
+  .cell .tag{font-size:.56rem;color:var(--ink2);letter-spacing:.03em;line-height:1;opacity:.8}
+  .cell.today{background:var(--linen)}
+  .cell.sel{background:var(--linen);box-shadow:inset 0 0 0 2px var(--ink)}
+  .cell.today .ring .num{color:var(--ink)}
+
+  .key{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;font-size:.73rem;color:var(--ink2)}
+  .key i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+
+  /* ===== day panel ===== */
+  .panel{background:var(--linen);border-radius:20px;margin-top:22px;padding:22px 18px 24px}
+  .phead{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:20px}
+  .pday{font-family:var(--disp);font-weight:700;font-size:1.25rem;letter-spacing:-0.028em;margin:0;line-height:1.12}
+  .pkind{font-size:.74rem;color:var(--apricot);font-weight:600;letter-spacing:.09em;margin:4px 0 0}
+  .pmeter{flex:0 0 auto;width:52px}
+  .pmeter svg{display:block;width:100%}
+  .pmeter .lab{font-family:var(--disp);font-weight:700;font-size:.78rem;text-align:center;margin-top:3px;color:var(--ink2)}
+
+  .glabel{font-size:.7rem;color:var(--ink2);letter-spacing:.1em;margin:24px 0 8px;
+    padding-top:16px;border-top:1px solid var(--rule)}
+  .glabel:first-of-type{margin-top:0;padding-top:0;border-top:0}
+
+  ul.items{list-style:none;margin:0;padding:0}
+  ul.items li{display:flex;align-items:flex-start;gap:12px;padding:11px 0}
+  ul.items li+li{border-top:1px solid var(--rule)}
+  .box{flex:0 0 auto;width:24px;height:24px;border:2px solid var(--rule);border-radius:8px;
+    background:var(--paper);cursor:pointer;padding:0;position:relative;margin-top:2px}
+  .box[aria-pressed="true"]{background:var(--sage);border-color:var(--sage)}
+  .box[aria-pressed="true"]::after{content:"";position:absolute;left:7px;top:3px;width:6px;height:12px;
+    border:solid var(--paper);border-width:0 2.5px 2.5px 0;transform:rotate(42deg)}
+  .spacer{flex:0 0 auto;width:24px}
+  ul.items .txt{flex:1;min-width:0}
+  ul.items .nm{font-weight:600;font-size:.95rem;display:block}
+  ul.items .nm a{color:var(--ink);text-decoration:none;border-bottom:1.5px solid var(--apricot);padding-bottom:1px}
+  ul.items .nm a:hover{color:var(--apricot)}
+  ul.items .sets{display:block;font-size:.78rem;color:var(--ink2);margin-top:2px}
+  ul.items li.on .nm,ul.items li.on .nm a{color:var(--ink2);text-decoration:line-through;text-decoration-color:var(--rule)}
+
+  .opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .opt{font-family:var(--body);font-size:.79rem;font-weight:500;padding:6px 13px;border-radius:99px;
+    border:1.5px solid var(--rule);background:var(--paper);color:var(--ink2);cursor:pointer;line-height:1.3}
+  .opt:hover{border-color:var(--ink2)}
+  .opt.sel{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+  .ratio{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--rule);
+    font-family:var(--disp);font-weight:700;font-size:1rem;letter-spacing:-0.02em;color:var(--ink2)}
+  .ratio em{font-style:normal;color:var(--sage)}
+
+  /* ===== plan tab ===== */
+  ol.lifts{list-style:none;margin:0;padding:0}
+  ol.lifts li{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:11px 0}
+  ol.lifts li+li{border-top:1px solid var(--rule)}
+  ol.lifts a{color:var(--ink);font-weight:600;font-size:.96rem;text-decoration:none;
+    border-bottom:1.5px solid var(--apricot);padding-bottom:1px}
+  ol.lifts a:hover{color:var(--apricot)}
+  .sets{font-size:.82rem;color:var(--ink2);white-space:nowrap}
+  dl.meals{margin:0}
+  dl.meals dt{font-size:.72rem;color:var(--apricot);font-weight:600;letter-spacing:.08em;
+    margin-top:20px;padding-top:16px;border-top:1px solid var(--rule)}
+  dl.meals dt:first-child{border-top:0;margin-top:0;padding-top:0}
+  dl.meals dd{margin:5px 0 0;max-width:50ch;font-size:.94rem}
+  .macro{display:block;font-size:.77rem;color:var(--ink2);margin-top:3px}
+  .note{background:var(--linen);border-radius:16px;padding:18px;margin-top:22px}
+  .note p{margin:0;max-width:48ch;font-size:.92rem}
+  .note p+p{margin-top:11px}
+  .note b{font-weight:600}
+  .totals{font-family:var(--disp);font-weight:700;font-size:1rem;letter-spacing:-0.02em;
+    margin-top:22px;padding-top:14px;border-top:1px solid var(--rule)}
+
+  /* ===== progress ===== */
+  .row{display:flex;gap:7px;margin-bottom:9px;flex-wrap:wrap}
+  input,select{font-family:var(--body);font-size:.92rem;color:var(--ink);padding:11px 13px;
+    border:1.5px solid var(--rule);background:var(--paper);border-radius:12px;min-width:0;flex:1}
+  select{flex-basis:100%}
+  input::placeholder{color:var(--ink2)}
+  button.save{font-size:.9rem;font-weight:600;color:var(--paper);background:var(--ink);
+    border:0;border-radius:12px;padding:11px 22px;cursor:pointer;flex:0 0 auto}
+  button.save:hover{background:var(--sage)}
+  .stat{font-family:var(--disp);font-weight:700;font-size:1.1rem;letter-spacing:-0.02em;
+    color:var(--ink);margin-top:12px}
+  .chart{margin:14px 0 4px;background:var(--linen);border-radius:16px;padding:14px 8px 6px}
+  .chart svg{width:100%;height:auto;display:block}
+  .axis{font-family:var(--body);font-size:11px;fill:var(--ink2)}
+  .empty{font-size:.85rem;color:var(--ink2);background:var(--linen);border-radius:16px;
+    padding:26px 18px;text-align:center;margin:14px 0}
+  ul.log{list-style:none;margin:14px 0 0;padding:0}
+  ul.log li{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:9px 0;font-size:.91rem}
+  ul.log li+li{border-top:1px solid var(--rule)}
+  ul.log .when{color:var(--ink2);font-size:.81rem}
+  ul.log .what{flex:1}
+  ul.log button{background:none;border:0;color:var(--ink2);font-size:1.1rem;cursor:pointer;padding:2px 6px}
+  ul.log button:hover{color:var(--rose)}
+
+  footer{font-size:.77rem;color:var(--ink2);margin-top:38px;border-top:1px solid var(--rule);
+    padding-top:16px;max-width:50ch}
+  .warn{font-size:.8rem;color:var(--ink);background:#F7E3C0;border-radius:12px;
+    padding:11px 13px;margin-bottom:18px;display:none}
+
+  @media (prefers-reduced-motion:no-preference){
+    .cell,.box,.opt,nav button{transition:background-color .16s ease,color .16s ease,border-color .16s ease}
+    .ring circle{transition:stroke-dasharray .35s cubic-bezier(.4,0,.2,1)}
+    .box[aria-pressed="true"]{animation:pop .22s ease}
+    @keyframes pop{0%{transform:scale(.82)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="banner">
+    <h1>Training<br>planner</h1>
+    <p class="sub">Three lifts a week · dumbbells and a pull-up bar</p>
+    <div class="pulse">
+      <div class="dots" id="pulseDots"></div>
+      <div class="n" id="pulseN">—</div>
+    </div>
+  </div>
+
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-view="cal">Calendar</button>
+    <button role="tab" aria-selected="false" data-view="plan">The plan</button>
+    <button role="tab" aria-selected="false" data-view="prog">Progress</button>
+  </nav>
+
+  <div class="warn" id="warn">Saving is unavailable here, so entries will disappear when you close this. Open it inside Claude to keep your history.</div>
+
+  <!-- CALENDAR -->
+  <div class="view on" id="v-cal">
+    <div class="calbar">
+      <button id="prevM" aria-label="Previous month">&lsaquo;</button>
+      <h3 id="monthName">—</h3>
+      <button id="nextM" aria-label="Next month">&rsaquo;</button>
+    </div>
+    <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+    <div class="grid" id="grid"></div>
+    <div class="key">
+      <span><i style="background:var(--sage)"></i>Full day</span>
+      <span><i style="background:var(--apricot)"></i>Partly done</span>
+      <span><i style="background:var(--rose)"></i>Missed</span>
+      <span><i style="background:var(--faint)"></i>Ahead of you</span>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+
+  <!-- PLAN -->
+  <div class="view" id="v-plan">
+    <section>
+      <h2>Workout A</h2>
+      <p class="hint">About 45 minutes. Rest 90 seconds between sets. Tap any name for a form video.</p>
+      <ol class="lifts" id="planA"></ol>
+    </section>
+    <section>
+      <h2>Workout B</h2>
+      <p class="hint">Dumbbells, pull-up bar, and a chair for your back foot.</p>
+      <ol class="lifts" id="planB"></ol>
+      <div class="note">
+        <p><b>The part that actually builds muscle.</b> The last two reps of every set should be hard — not impossible, but close. When you finish the top of the rep range with room to spare, go up in weight next session.</p>
+        <p><b>Working up to a pull-up.</b> Jump or step up so your chin clears the bar, then lower as slowly as you can. Lowering builds the strength to pull long before you can pull.</p>
+      </div>
+    </section>
+    <section>
+      <h2>Eating day</h2>
+      <p class="hint">Pick whichever option you want each day. The calendar remembers what you chose.</p>
+      <dl class="meals">
+        <dt>MAIN MEAL · 7–9 AM</dt>
+        <dd>10–12 oz steak or 8 oz fish, with a generous serving of mashed potatoes or mac and cheese. Scaled up, since this is now one of only two feedings.
+          <span class="macro">≈ 1,100–1,250 cal · 70–80 g protein</span></dd>
+        <dt>VEGETABLES</dt>
+        <dd>Spinach, kale, broccoli, salad, carrots or peppers. One serving, and make it leafy green or deep orange — those carry the most of what this diet is short on.</dd>
+        <dt>PROTEIN SNACK · MID-AFTERNOON</dt>
+        <dd>Two cups of cottage cheese or Greek yogurt, not one. With nuts or trail mix stirred in.
+          <span class="macro">≈ 500 cal · 50 g protein</span></dd>
+        <dt>FRUIT</dt>
+        <dd>Berries, citrus, or an apple. The easiest way to cover more vitamins in one go — C, folate, potassium and antioxidants all arrive together.</dd>
+        <dt>TOP UP AS NEEDED</dt>
+        <dd>Extra veg or beans, trail mix, nuts, or extra protein. With only two feedings, use this slot more often than you'd think — and beans are the single most useful thing on it, covering fiber, folate and magnesium at once.</dd>
+        <dt>ANYTIME</dt>
+        <dd>Water, plus 2 tbsp chia seeds.</dd>
+      </dl>
+      <p class="totals">≈ 1,700–1,800 cal · ≈ 120 g protein — if the portions scale up</p>
+      <div class="note">
+        <p><b>Two feedings changes the portion math.</b> Dropping the evening meal removes roughly 400 calories and 30 g of protein. If the remaining two stay the same size, you land near 1,200 calories, which is under what you burn — and muscle doesn't get built in a deficit. The portions above are scaled to compensate.</p>
+        <p><b>Watch the protein ceiling.</b> Your body can only use so much protein per sitting for building; the rest gets burned for fuel. Two large feedings work, but they're less efficient than three moderate ones. If your strength numbers stall for a month, this is the first thing I'd revisit.</p>
+        <p><b>Fish at least twice a week.</b> It's your only real source of omega-3s and it offsets the saturated fat that daily ribeye piles up.</p>
+        <p><b>But keep the red meat.</b> Steak is your best iron source and iron matters more for you than for most people. Four steak days and three fish days is the balance to aim for.</p>
+        <p><b>Worth testing rather than guessing.</b> Vitamin D is the one nutrient here you can't reason your way to. Ask for a blood level at your next checkup.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="view" id="v-prog">
+    <section>
+      <h2>Weekly weigh-in</h2>
+      <p class="hint">Same morning each week, before eating. Half a pound a week is the target.</p>
+      <div class="row">
+        <input type="date" id="wDate" aria-label="Date">
+        <input type="number" id="wLbs" placeholder="lb" step="0.1" inputmode="decimal" aria-label="Weight in pounds">
+        <button class="save" id="wSave">Log</button>
+      </div>
+      <div class="stat" id="wStat"></div>
+      <div class="chart" id="wChart"></div>
+      <ul class="log" id="wLog"></ul>
+    </section>
+    <section>
+      <h2>Lift log</h2>
+      <p class="hint">Log your hardest set. The score blends weight and reps, so more reps at the same dumbbell still counts as progress.</p>
+      <div class="row"><select id="lEx" aria-label="Exercise"></select></div>
+      <div class="row">
+        <input type="number" id="lWt" placeholder="lb per hand" step="0.5" inputmode="decimal" aria-label="Weight">
+        <input type="number" id="lReps" placeholder="reps" inputmode="numeric" aria-label="Reps">
+        <button class="save" id="lSave">Log</button>
+      </div>
+      <div class="stat" id="lPr"></div>
+      <div class="chart" id="lChart"></div>
+      <ul class="log" id="lLog"></ul>
+    </section>
+    <section>
+      <h2>Backup</h2>
+      <p class="hint" id="storeNote"></p>
+      <div class="row">
+        <button class="save" id="expBtn">Download backup</button>
+        <button class="save" id="impBtn" style="background:var(--linen);color:var(--ink)">Restore from file</button>
+        <input type="file" id="impFile" accept="application/json,.json" hidden>
+      </div>
+      <p class="hint" id="backupMsg" style="margin-top:10px"></p>
+    </section>
+  </div>
+
+  <footer>Progress is rarely a straight line. A flat week is normal; three flat weeks is a signal to eat a little more. General fitness guidance, not medical advice.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY = "lean-muscle-planner-v2";
+  var ANCHOR = "2026-09-07";
+
+  var WORKOUT_A = [
+    ["Goblet squat","3 × 8–12","goblet+squat+proper+form"],
+    ["Dumbbell floor press","3 × 8–12","dumbbell+floor+press+proper+form"],
+    ["One-arm dumbbell row","3 × 10 each","one+arm+dumbbell+row+proper+form"],
+    ["Dumbbell Romanian deadlift","3 × 10","dumbbell+romanian+deadlift+proper+form"],
+    ["Dumbbell curl","3 × 12","dumbbell+bicep+curl+proper+form"],
+    ["Side plank","3 × 20 sec each","side+plank+proper+form"],
+    ["Plank","3 × 30 sec","forearm+plank+proper+form"]
+  ];
+  var WORKOUT_B = [
+    ["Bulgarian split squat","3 × 8 each","bulgarian+split+squat+proper+form"],
+    ["Dumbbell overhead press","3 × 8–12","dumbbell+overhead+press+proper+form"],
+    ["Negative pull-up","3 × 3–5","negative+pull+up+beginner+progression"],
+    ["Dumbbell glute bridge","3 × 12","dumbbell+glute+bridge+proper+form"],
+    ["Overhead tricep extension","3 × 12","dumbbell+overhead+tricep+extension+proper+form"],
+    ["Hanging knee raise","3 × 8–12","hanging+knee+raise+proper+form"],
+    ["Dead bug","3 × 10 each","dead+bug+exercise+proper+form"]
+  ];
+  var LIFT_NAMES = WORKOUT_A.concat(WORKOUT_B).map(function(x){ return x[0]; });
+  var MONTHS = ["January","February","March","April","May","June","July",
+                "August","September","October","November","December"];
+  var DAYNAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+  var data = { bodyweight:[], lifts:[], done:{}, pick:{} };
+  var viewMonth, selected;
+
+  function iso(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function today(){ return iso(new Date()); }
+  function parse(s){ return new Date(s+"T12:00:00"); }
+  function addDays(s,n){ var d=parse(s); d.setDate(d.getDate()+n); return iso(d); }
+  function mondayOf(s){ var d=parse(s); d.setDate(d.getDate()-((d.getDay()+6)%7)); return iso(d); }
+  function fmtShort(s){ var p=s.split("-"); return +p[1]+"/"+ +p[2]; }
+  function fmtLong(s){ var d=parse(s); return DAYNAMES[d.getDay()]+", "+MONTHS[d.getMonth()]+" "+d.getDate(); }
+
+  function dayPlan(s){
+    var dow=(parse(s).getDay()+6)%7;
+    if(dow===6) return {type:"rest"};
+    if(dow===1||dow===3||dow===5) return {type:"walk"};
+    var weeks=Math.round((parse(mondayOf(s))-parse(ANCHOR))/604800000);
+    var even=(((weeks%2)+2)%2)===0;
+    return {type:"lift",letter:(even?{0:"A",2:"B",4:"A"}:{0:"B",2:"A",4:"B"})[dow]};
+  }
+
+  function items(s){
+    var p=dayPlan(s), out=[];
+    if(p.type==="lift"){
+      (p.letter==="A"?WORKOUT_A:WORKOUT_B).forEach(function(e,i){
+        out.push({id:"t"+i,group:"MOVEMENT",name:e[0],sets:e[1],q:e[2]});
+      });
+    } else if(p.type==="walk"){
+      out.push({id:"t0",group:"MOVEMENT",name:"Walk 25–30 minutes",sets:"Easy pace — recovery, not a workout"});
+    } else {
+      out.push({id:"t0",group:"MOVEMENT",name:"Rest day",sets:"Nothing to do. Recovery is when muscle is actually built.",unscored:true});
+    }
+    out.push({id:"m0",group:"EATING",name:"Main meal",sets:"7–9 am · pick your protein",
+      opts:["Steak","Fish"]});
+    out.push({id:"m1",group:"EATING",name:"With a side of",sets:"Either one works",
+      opts:["Mashed potatoes","Mac and cheese"]});
+    out.push({id:"v0",group:"EATING",name:"Vegetables",sets:"Make it leafy green or deep orange",
+      opts:["Spinach or kale","Broccoli","Salad","Carrots or peppers"]});
+    if(p.type==="lift"){
+      out.push({id:"m2",group:"EATING",name:"Protein snack",sets:"Within 2 hours of lifting · make it a big one",
+        opts:["Cottage cheese","Greek yogurt"]});
+    } else {
+      out.push({id:"m2",group:"EATING",name:"Protein snack",sets:"Mid-afternoon · make it a big one",
+        opts:["Cottage cheese","Greek yogurt"]});
+    }
+    out.push({id:"f0",group:"EATING",name:"Fruit",sets:"The easiest way to cover more vitamins",
+      opts:["Berries","Citrus","Apple or banana"],unscored:true});
+    out.push({id:"m4",group:"EATING",name:"Top up as needed",sets:"If the day feels short",
+      opts:["Extra veg or beans","Trail mix","Extra protein","Nuts or seeds"],unscored:true,multi:true});
+    out.push({id:"m5",group:"EATING",name:"Water and chia",sets:"2 tbsp, anytime"});
+    return out;
+  }
+
+  function isDone(s,it){
+    var d=data.done[s]||[];
+    return d.indexOf(it.id)>-1;
+  }
+  function ratio(s){
+    var scored=items(s).filter(function(i){ return !i.unscored; });
+    var hit=scored.filter(function(i){ return isDone(s,i); }).length;
+    return {hit:hit,total:scored.length,pct:scored.length?hit/scored.length:0};
+  }
+  function startDate(){
+    var keys=Object.keys(data.done);
+    if(!keys.length) return today();
+    return keys.sort()[0];
+  }
+  function stateOf(s){
+    var r=ratio(s);
+    if(r.pct>=0.999) return "full";
+    if(r.pct>=0.5) return "part";
+    if(r.hit>0) return "some";
+    if(s<today() && s>=startDate()) return "miss";
+    return "";
+  }
+  function colorOf(st){
+    return st==="full"?"var(--sage)":st==="part"?"var(--apricot)":
+           st==="some"?"var(--apricot)":st==="miss"?"var(--rose)":"var(--faint)";
+  }
+
+  var store = (function(){
+    if(typeof window.storage !== "undefined" && window.storage){
+      return {
+        kind:"claude",
+        get:function(){
+          return window.storage.get(KEY)
+            .then(function(r){ return r && r.value ? r.value : null; })
+            .catch(function(){ return null; });
+        },
+        set:function(v){ return window.storage.set(KEY, v); }
+      };
+    }
+    try{
+      var probe = "__probe__";
+      localStorage.setItem(probe, "1");
+      localStorage.removeItem(probe);
+      return {
+        kind:"local",
+        get:function(){ return Promise.resolve(localStorage.getItem(KEY)); },
+        set:function(v){ localStorage.setItem(KEY, v); return Promise.resolve(); }
+      };
+    }catch(e){}
+    var mem = null;
+    return {
+      kind:"memory",
+      get:function(){ return Promise.resolve(mem); },
+      set:function(v){ mem = v; return Promise.resolve(); }
+    };
+  })();
+
+  function load(){
+    if(store.kind === "memory") document.getElementById("warn").style.display = "block";
+    return store.get().then(function(raw){
+      if(raw) data = JSON.parse(raw);
+      data.bodyweight=data.bodyweight||[]; data.lifts=data.lifts||[];
+      data.done=data.done||{}; data.pick=data.pick||{};
+    }).catch(function(){});
+  }
+  function save(){
+    return store.set(JSON.stringify(data)).catch(function(){
+      document.getElementById("warn").style.display="block";
+    });
+  }
+  function esc(s){ return String(s).replace(/[<>&"]/g,function(c){
+    return {"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]; }); }
+
+  function ringSVG(pct,color,size){
+    var r=17.5;
+    return '<svg viewBox="0 0 44 44" aria-hidden="true">'+
+      '<circle cx="22" cy="22" r="'+r+'" fill="none" stroke="var(--faint)" stroke-width="3.5"/>'+
+      (pct>0?'<circle cx="22" cy="22" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="3.5" '+
+        'stroke-linecap="round" pathLength="100" stroke-dasharray="'+(pct*100).toFixed(1)+' 100" '+
+        'transform="rotate(-90 22 22)"/>':'')+
+      (pct>=0.999?'<circle cx="22" cy="22" r="14" fill="'+color+'" opacity=".14"/>':'')+
+      '</svg>';
+  }
+
+  function renderPulse(){
+    var mon=mondayOf(today()), html="", full=0;
+    for(var i=0;i<7;i++){
+      var s=addDays(mon,i), st=stateOf(s);
+      if(st==="full") full++;
+      html+='<i class="'+(st==="some"?"part":st)+'"></i>';
+    }
+    document.getElementById("pulseDots").innerHTML=html;
+    document.getElementById("pulseN").textContent=full+" full days";
+  }
+
+  function renderCal(){
+    var y=viewMonth.getFullYear(), m=viewMonth.getMonth();
+    document.getElementById("monthName").innerHTML=MONTHS[m]+' <em>'+y+'</em>';
+    var lead=(new Date(y,m,1).getDay()+6)%7, days=new Date(y,m+1,0).getDate(), html="";
+    for(var i=0;i<lead;i++) html+='<div class="cell blank"></div>';
+    for(var d=1;d<=days;d++){
+      var s=iso(new Date(y,m,d)), p=dayPlan(s), r=ratio(s), st=stateOf(s);
+      var pct = st==="miss" ? 1 : r.pct;
+      var cls="cell";
+      if(r.hit>0) cls+=" done";
+      if(s===today()) cls+=" today";
+      if(s===selected) cls+=" sel";
+      var tag=p.type==="lift"?p.letter:(p.type==="walk"?"walk":"rest");
+      html+='<button class="'+cls+'" data-day="'+s+'" aria-label="'+fmtLong(s)+'">'+
+            '<span class="ring">'+ringSVG(pct,colorOf(st))+'<span class="num">'+d+'</span></span>'+
+            '<span class="tag">'+tag+'</span></button>';
+    }
+    document.getElementById("grid").innerHTML=html;
+    renderPulse();
+  }
+
+  function renderPanel(){
+    var s=selected, p=dayPlan(s), r=ratio(s), st=stateOf(s);
+    var list=items(s), picks=data.pick[s]||{};
+    var kind=p.type==="lift"?("WORKOUT "+p.letter):(p.type==="walk"?"WALK DAY":"REST DAY");
+
+    var html='<div class="phead"><div><p class="pday">'+fmtLong(s)+'</p>'+
+      '<p class="pkind">'+kind+'</p></div>'+
+      '<div class="pmeter">'+ringSVG(r.pct,colorOf(st))+
+      '<div class="lab">'+Math.round(r.pct*100)+'%</div></div></div>';
+
+    var group=null, open=false;
+    list.forEach(function(it){
+      if(it.group!==group){
+        if(open) html+='</ul>';
+        html+='<div class="glabel">'+it.group+'</div><ul class="items">';
+        group=it.group; open=true;
+      }
+      var on=isDone(s,it);
+      var nm=it.q?'<a href="https://www.youtube.com/results?search_query='+it.q+'" target="_blank" rel="noopener">'+esc(it.name)+'</a>':esc(it.name);
+
+      html+='<li class="'+(on&&!it.opts?"on":"")+'">';
+      if(it.opts){
+        html+='<span class="spacer"></span>';
+      } else {
+        html+='<button class="box" data-item="'+it.id+'" aria-pressed="'+on+'" aria-label="Mark '+esc(it.name)+' done"></button>';
+      }
+      html+='<span class="txt"><span class="nm">'+nm+'</span><span class="sets">'+esc(it.sets)+'</span>';
+      if(it.opts){
+        var chosen=picks[it.id];
+        html+='<span class="opts">';
+        it.opts.forEach(function(o,oi){
+          var sel = it.multi ? (Array.isArray(chosen)&&chosen.indexOf(oi)>-1) : (chosen===oi);
+          html+='<button class="opt'+(sel?" sel":"")+'" data-opt="'+it.id+'" data-oi="'+oi+
+                '" data-multi="'+(it.multi?1:0)+'" aria-pressed="'+sel+'">'+esc(o)+'</button>';
+        });
+        html+='</span>';
+      }
+      html+='</span></li>';
+    });
+    if(open) html+='</ul>';
+    html+='<p class="ratio">'+(r.pct>=0.999?'<em>Full day — '+r.total+' of '+r.total+'</em>':
+      r.hit+' of '+r.total+' done')+'</p>';
+    document.getElementById("panel").innerHTML=html;
+  }
+
+  function setDone(s,id,on){
+    var arr=data.done[s]||[], at=arr.indexOf(id);
+    if(on && at<0) arr.push(id);
+    if(!on && at>-1) arr.splice(at,1);
+    if(arr.length) data.done[s]=arr; else delete data.done[s];
+  }
+
+  function lineChart(pts,unit){
+    if(!pts.length) return '<div class="empty">No entries yet. Your first one starts the line.</div>';
+    if(pts.length===1) return '<div class="empty">One entry logged: '+pts[0].y+' '+unit+'. Log another to see the trend.</div>';
+    var W=560,H=210,L=38,R=10,T=14,B=24,iw=W-L-R,ih=H-T-B;
+    var ys=pts.map(function(p){return p.y;});
+    var lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys);
+    var pad=(hi-lo)*0.25||Math.max(hi*0.05,1); lo-=pad; hi+=pad;
+    var X=function(i){return L+iw*i/(pts.length-1);};
+    var Y=function(v){return T+ih-ih*(v-lo)/(hi-lo);};
+    var line="",dots="",grid="",labels="";
+    pts.forEach(function(p,i){
+      line+=(i?" L":"M")+X(i).toFixed(1)+" "+Y(p.y).toFixed(1);
+      dots+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="4" fill="var(--linen)" stroke="var(--ink)" stroke-width="2.5"/>';
+    });
+    var area=line+" L"+X(pts.length-1).toFixed(1)+" "+(T+ih)+" L"+X(0).toFixed(1)+" "+(T+ih)+" Z";
+    [lo+(hi-lo)*0.15,(lo+hi)/2,hi-(hi-lo)*0.15].forEach(function(v){
+      var y=Y(v).toFixed(1);
+      grid+='<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'" stroke="var(--rule)"/>'+
+            '<text class="axis" x="'+(L-7)+'" y="'+(+y+4)+'" text-anchor="end">'+Math.round(v)+'</text>';
+    });
+    [0,Math.floor((pts.length-1)/2),pts.length-1].filter(function(v,i,a){return a.indexOf(v)===i;})
+      .forEach(function(i){
+        var a=i===0?"start":(i===pts.length-1?"end":"middle");
+        labels+='<text class="axis" x="'+X(i).toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+a+'">'+fmtShort(pts[i].x)+'</text>';
+      });
+    return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Progress chart">'+grid+
+      '<path d="'+area+'" fill="var(--sage)" opacity=".16"/>'+
+      '<path d="'+line+'" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+      dots+labels+'</svg>';
+  }
+
+  function renderWeight(){
+    var bw=data.bodyweight.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+    document.getElementById("wChart").innerHTML=lineChart(bw.map(function(e){return {x:e.date,y:e.lbs};}),"lb");
+    var st=document.getElementById("wStat");
+    if(bw.length>1){
+      var diff=+(bw[bw.length-1].lbs-bw[0].lbs).toFixed(1);
+      st.textContent=bw[bw.length-1].lbs+" lb · "+(diff>0?"+":"")+diff+" lb since "+fmtShort(bw[0].date);
+    } else st.textContent=bw.length?bw[0].lbs+" lb — starting point set":"";
+    document.getElementById("wLog").innerHTML=bw.slice().reverse().slice(0,8).map(function(e){
+      return '<li><span class="when">'+fmtShort(e.date)+'</span><span class="what">'+e.lbs+' lb</span>'+
+             '<button data-delw="'+esc(e.date)+'" aria-label="Delete">&times;</button></li>';
+    }).join("");
+  }
+
+  function scoreOf(w,r){ return w>0?Math.round(w*(1+r/30)):r; }
+
+  function renderLifts(){
+    var ex=document.getElementById("lEx").value;
+    var rows=data.lifts.filter(function(e){return e.ex===ex;}).sort(function(a,b){return a.date<b.date?-1:1;});
+    document.getElementById("lChart").innerHTML=lineChart(rows.map(function(e){return {x:e.date,y:scoreOf(e.wt,e.reps)};}),"pts");
+    var pr=document.getElementById("lPr");
+    if(rows.length){
+      var best=rows.reduce(function(a,b){return scoreOf(b.wt,b.reps)>scoreOf(a.wt,a.reps)?b:a;});
+      pr.textContent="Best: "+(best.wt>0?best.wt+" lb × ":"")+best.reps+" reps · "+fmtShort(best.date);
+    } else pr.textContent="";
+    document.getElementById("lLog").innerHTML=rows.slice().reverse().slice(0,8).map(function(e){
+      return '<li><span class="when">'+fmtShort(e.date)+'</span>'+
+             '<span class="what">'+(e.wt>0?e.wt+' lb × ':'')+e.reps+' reps</span>'+
+             '<button data-dell="'+esc(e.id)+'" aria-label="Delete">&times;</button></li>';
+    }).join("");
+  }
+
+  function renderPlanTab(){
+    function rows(w){
+      return w.map(function(e){
+        return '<li><a href="https://www.youtube.com/results?search_query='+e[2]+'" target="_blank" rel="noopener">'+
+               esc(e[0])+'</a><span class="sets">'+e[1]+'</span></li>';
+      }).join("");
+    }
+    document.getElementById("planA").innerHTML=rows(WORKOUT_A);
+    document.getElementById("planB").innerHTML=rows(WORKOUT_B);
+  }
+
+  document.querySelectorAll("nav button").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll("nav button").forEach(function(x){x.setAttribute("aria-selected","false");});
+      b.setAttribute("aria-selected","true");
+      document.querySelectorAll(".view").forEach(function(v){v.classList.remove("on");});
+      document.getElementById("v-"+b.dataset.view).classList.add("on");
+    });
+  });
+
+  document.getElementById("prevM").addEventListener("click",function(){
+    viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()-1,1); renderCal();
+  });
+  document.getElementById("nextM").addEventListener("click",function(){
+    viewMonth=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,1); renderCal();
+  });
+
+  document.body.addEventListener("click",function(e){
+    var el=e.target.closest?e.target:null;
+
+    var opt=e.target.closest?e.target.closest("[data-opt]"):null;
+    if(opt){
+      var id=opt.dataset.opt, oi=+opt.dataset.oi, multi=opt.dataset.multi==="1";
+      var picks=data.pick[selected]||{};
+      if(multi){
+        var arr=Array.isArray(picks[id])?picks[id]:[];
+        var at=arr.indexOf(oi);
+        if(at>-1) arr.splice(at,1); else arr.push(oi);
+        picks[id]=arr;
+        setDone(selected,id,arr.length>0);
+      } else {
+        if(picks[id]===oi){ delete picks[id]; setDone(selected,id,false); }
+        else { picks[id]=oi; setDone(selected,id,true); }
+      }
+      data.pick[selected]=picks;
+      save().then(function(){ renderCal(); renderPanel(); });
+      return;
+    }
+
+    var box=e.target.closest?e.target.closest("[data-item]"):null;
+    if(box){
+      setDone(selected,box.dataset.item,box.getAttribute("aria-pressed")!=="true");
+      save().then(function(){ renderCal(); renderPanel(); });
+      return;
+    }
+
+    var cell=e.target.closest?e.target.closest("[data-day]"):null;
+    if(cell){ selected=cell.dataset.day; renderCal(); renderPanel(); return; }
+
+    var t=e.target;
+    if(t.dataset&&t.dataset.delw){
+      data.bodyweight=data.bodyweight.filter(function(x){return x.date!==t.dataset.delw;});
+      save().then(renderWeight);
+    }
+    if(t.dataset&&t.dataset.dell){
+      data.lifts=data.lifts.filter(function(x){return x.id!==t.dataset.dell;});
+      save().then(renderLifts);
+    }
+  });
+
+  document.getElementById("wSave").addEventListener("click",function(){
+    var d=document.getElementById("wDate").value||today();
+    var v=parseFloat(document.getElementById("wLbs").value);
+    if(!v||v<=0||v>600) return;
+    data.bodyweight=data.bodyweight.filter(function(e){return e.date!==d;});
+    data.bodyweight.push({date:d,lbs:+v.toFixed(1)});
+    document.getElementById("wLbs").value="";
+    save().then(renderWeight);
+  });
+
+  document.getElementById("lSave").addEventListener("click",function(){
+    var wt=parseFloat(document.getElementById("lWt").value)||0;
+    var r=parseInt(document.getElementById("lReps").value,10);
+    if(!r||r<=0||r>500) return;
+    data.lifts.push({id:String(Date.now()),date:today(),ex:document.getElementById("lEx").value,wt:wt,reps:r});
+    document.getElementById("lReps").value="";
+    save().then(renderLifts);
+  });
+  document.getElementById("lEx").addEventListener("change",renderLifts);
+
+  selected=today();
+  viewMonth=new Date(); viewMonth.setDate(1);
+  document.getElementById("wDate").value=today();
+  document.getElementById("lEx").innerHTML=LIFT_NAMES.map(function(n){return '<option>'+esc(n)+'</option>';}).join("");
+  renderPlanTab();
+
+  document.getElementById("storeNote").textContent =
+    store.kind === "claude" ? "Saved in Claude, tied to your account." :
+    store.kind === "local"  ? "Saved in this browser, on this device only. Clearing site data wipes it, so download a backup now and then." :
+    "Nothing is being saved. Download a backup before you close this.";
+
+  document.getElementById("expBtn").addEventListener("click",function(){
+    var blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "training-planner-"+today()+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    document.getElementById("backupMsg").textContent = "Backup downloaded.";
+  });
+
+  document.getElementById("impBtn").addEventListener("click",function(){
+    document.getElementById("impFile").click();
+  });
+  document.getElementById("impFile").addEventListener("change",function(e){
+    var f = e.target.files && e.target.files[0];
+    if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      try{
+        var incoming = JSON.parse(fr.result);
+        data = {
+          bodyweight: incoming.bodyweight || [],
+          lifts: incoming.lifts || [],
+          done: incoming.done || {},
+          pick: incoming.pick || {}
+        };
+        save().then(function(){
+          renderCal(); renderPanel(); renderWeight(); renderLifts();
+          document.getElementById("backupMsg").textContent = "Restored.";
+        });
+      }catch(err){
+        document.getElementById("backupMsg").textContent = "That file couldn't be read. Pick the .json backup this planner produced.";
+      }
+    };
+    fr.readAsText(f);
+    e.target.value = "";
+  });
+
+  load().then(function(){ renderCal(); renderPanel(); renderWeight(); renderLifts(); });
+})();
+</script>
+</body>
+</html>
