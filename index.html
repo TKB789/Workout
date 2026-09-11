@@ -147,6 +147,7 @@
   .ratio{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--rule);
     font-family:var(--disp);font-weight:700;font-size:1rem;letter-spacing:-0.02em;color:var(--ink2)}
   .ratio em{font-style:normal;color:var(--sage)}
+  .missing{font-size:.78rem;color:var(--ink2);margin:6px 0 0}
 
   /* ===== plan tab ===== */
   ol.lifts{list-style:none;margin:0;padding:0}
@@ -465,10 +466,35 @@
     var d=data.done[s]||[];
     return d.indexOf(it.id)>-1;
   }
+  var EAT_MAIN="m0", EAT_WATER="m5", EAT_OTHERS=["m1","v0","m2","f0","m4"];
+
+  function eatingState(s){
+    var done=data.done[s]||[];
+    return {
+      main: done.indexOf(EAT_MAIN)>-1,
+      water: done.indexOf(EAT_WATER)>-1,
+      other: EAT_OTHERS.some(function(id){ return done.indexOf(id)>-1; })
+    };
+  }
+
   function ratio(s){
-    var scored=items(s).filter(function(i){ return !i.unscored; });
-    var hit=scored.filter(function(i){ return isDone(s,i); }).length;
-    return {hit:hit,total:scored.length,pct:scored.length?hit/scored.length:0};
+    var done=data.done[s]||[];
+    var move=items(s).filter(function(i){ return i.group==="MOVEMENT" && !i.unscored; });
+    var e=eatingState(s);
+    var total=move.length+3;
+    var hit=move.filter(function(i){ return done.indexOf(i.id)>-1; }).length;
+    if(e.main) hit++;
+    if(e.water) hit++;
+    if(e.other) hit++;
+    return {hit:hit,total:total,pct:total?hit/total:0};
+  }
+
+  function missingNote(s){
+    var e=eatingState(s), gaps=[];
+    if(!e.main) gaps.push("the main meal");
+    if(!e.water) gaps.push("water");
+    if(!e.other) gaps.push("one more from the list");
+    return gaps.length ? "Still to go: "+gaps.join(", ") : "";
   }
   function startDate(){
     var keys=Object.keys(data.done);
@@ -627,6 +653,8 @@
     if(open) html+='</ul>';
     html+='<p class="ratio">'+(r.pct>=0.999?'<em>Full day — '+r.total+' of '+r.total+'</em>':
       r.hit+' of '+r.total+' done')+'</p>';
+    var miss=missingNote(s);
+    if(miss) html+='<p class="missing">'+miss+'</p>';
     document.getElementById("panel").innerHTML=html;
   }
 
