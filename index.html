@@ -18,6 +18,8 @@
     --sage:#6F9B5C;
     --apricot:#E09A45;
     --rose:#C4685C;
+    --plus:#8FC177;
+    --minus:#E58C7E;
     --faint:#E4DED0;
     --disp:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
     --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
@@ -145,15 +147,17 @@
     flex:1 1 0;min-width:0;text-align:center;
     display:inline-flex;align-items:center;justify-content:center;gap:3px}
   .opt:hover{border-color:var(--ink2)}
-  .opt.sel{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-  .optwrap{display:flex;align-items:stretch;flex:1 1 0;min-width:0}
-  .optwrap .opt{flex:1 1 auto;border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
-  .minus{font-family:var(--body);font-size:1rem;font-weight:600;line-height:1.3;
-    flex:0 0 auto;padding:6px 12px;border-radius:0 99px 99px 0;cursor:pointer;
-    background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);
-    border-left:1px solid rgba(252,248,241,.3);
+  .optwrap{display:flex;align-items:stretch;flex:1 1 0;min-width:0;
+    background:var(--ink);border:1.5px solid var(--ink);border-radius:99px;overflow:hidden}
+  .optwrap .lab{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:3px;
+    padding:6px 2px;font-size:.79rem;font-weight:500;line-height:1.3;color:var(--paper);text-align:center}
+  .step{font-family:var(--body);font-size:1rem;font-weight:700;line-height:1;
+    flex:0 0 auto;padding:6px 10px;background:none;border:0;cursor:pointer;
     display:flex;align-items:center;justify-content:center}
-  .minus:hover{background:var(--rose);border-color:var(--rose)}
+  .step.plus{color:var(--plus)}
+  .step.minus{color:var(--minus)}
+  .step.plus:hover{background:rgba(143,193,119,.2)}
+  .step.minus:hover{background:rgba(229,140,126,.2)}
 
   .ratio{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--rule);
     font-family:var(--disp);font-weight:700;font-size:1rem;letter-spacing:-0.02em;color:var(--ink2)}
@@ -482,7 +486,7 @@
     return '<div class="tally">'+
       '<div class="tlab"><span>Fuel for the day</span><b>'+word+'</b></div>'+
       '<div class="bar"><i class="'+(pct<0.85?"low":"")+'" style="width:'+(pct*100).toFixed(1)+'%"></i></div>'+
-      '<p class="foot">A rough guide, not a measurement — portion size moves it more than which option you pick. Tap an option again to add another serving, or &minus; to take one back.</p>'+
+      '<p class="foot">A rough guide, not a measurement — portion size moves it more than which option you pick. Tap an option to log it, then + or &minus; on the pill to change the count.</p>'+
       '</div>';
   }
 
@@ -697,14 +701,18 @@
         html+='<span class="opts">';
         it.opts.forEach(function(o,oi){
           var n = c[oi] || 0;
-          var pill='<button class="opt'+(n>0?" sel":"")+'" data-opt="'+it.id+'" data-oi="'+oi+
-                '" aria-pressed="'+(n>0)+'" aria-label="'+
-                (n>0?'Add another '+esc(o)+', '+n+' logged':'Add '+esc(o))+'">'+
-                esc(o)+(n>1?'<span class="x">×'+n+'</span>':'')+'</button>';
-          html += n>0
-            ? '<span class="optwrap">'+pill+'<button class="minus" data-minus="'+it.id+
-              '" data-oi="'+oi+'" aria-label="Remove one '+esc(o)+'">&minus;</button></span>'
-            : pill;
+          if(n>0){
+            html+='<span class="optwrap" role="group" aria-label="'+esc(o)+', '+n+' logged">'+
+              '<button class="step plus" data-opt="'+it.id+'" data-oi="'+oi+
+                '" aria-label="Add another '+esc(o)+'">+</button>'+
+              '<span class="lab">'+esc(o)+(n>1?'<span class="x">×'+n+'</span>':'')+'</span>'+
+              '<button class="step minus" data-minus="'+it.id+'" data-oi="'+oi+
+                '" aria-label="Remove one '+esc(o)+'">&minus;</button>'+
+              '</span>';
+          } else {
+            html+='<button class="opt" data-opt="'+it.id+'" data-oi="'+oi+
+              '" aria-pressed="false" aria-label="Add '+esc(o)+'">'+esc(o)+'</button>';
+          }
         });
         html+='</span>';
       }
