@@ -121,7 +121,7 @@
   .tally .bar i{display:block;height:100%;border-radius:99px;background:var(--sage)}
   .tally .bar i.low{background:var(--apricot)}
   .tally .foot{font-size:.72rem;color:var(--ink2);margin:12px 0 0;line-height:1.45}
-  .opt .x{font-weight:700;margin-left:6px;opacity:.85}
+  .opt .x{font-weight:700;margin-left:0;opacity:.85}
 
   ul.items{list-style:none;margin:0;padding:0}
   ul.items li{display:flex;align-items:flex-start;gap:12px;padding:11px 0}
@@ -139,17 +139,20 @@
   ul.items .sets{display:block;font-size:.78rem;color:var(--ink2);margin-top:2px}
   ul.items li.on .nm,ul.items li.on .nm a{color:var(--ink2);text-decoration:line-through;text-decoration-color:var(--rule)}
 
-  .opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-  .opt{font-family:var(--body);font-size:.79rem;font-weight:500;padding:6px 13px;border-radius:99px;
-    border:1.5px solid var(--rule);background:var(--paper);color:var(--ink2);cursor:pointer;line-height:1.3}
+  .opts{display:flex;flex-wrap:nowrap;align-items:stretch;gap:6px;margin-top:8px}
+  .opt{font-family:var(--body);font-size:.79rem;font-weight:500;padding:6px 10px;border-radius:99px;
+    border:1.5px solid var(--rule);background:var(--paper);color:var(--ink2);cursor:pointer;line-height:1.3;
+    flex:1 1 0;min-width:0;text-align:center;
+    display:inline-flex;align-items:center;justify-content:center;gap:3px}
   .opt:hover{border-color:var(--ink2)}
   .opt.sel{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-  .optwrap{display:inline-flex;align-items:stretch}
-  .optwrap .opt{border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
+  .optwrap{display:flex;align-items:stretch;flex:1 1 0;min-width:0}
+  .optwrap .opt{flex:1 1 auto;border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
   .minus{font-family:var(--body);font-size:1rem;font-weight:600;line-height:1.3;
-    padding:6px 13px;border-radius:0 99px 99px 0;cursor:pointer;
+    flex:0 0 auto;padding:6px 12px;border-radius:0 99px 99px 0;cursor:pointer;
     background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);
-    border-left:1px solid rgba(252,248,241,.3)}
+    border-left:1px solid rgba(252,248,241,.3);
+    display:flex;align-items:center;justify-content:center}
   .minus:hover{background:var(--rose);border-color:var(--rose)}
 
   .ratio{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--rule);
