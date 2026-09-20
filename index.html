@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1C3A2E">
 <title>Training Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +23,8 @@
     --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
   }
   *{box-sizing:border-box}
-  html{-webkit-text-size-adjust:100%}
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html{-webkit-text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
   body{
     margin:0;background:var(--paper);color:var(--ink);
     font-family:var(--body);font-size:15px;line-height:1.55;
@@ -143,6 +144,13 @@
     border:1.5px solid var(--rule);background:var(--paper);color:var(--ink2);cursor:pointer;line-height:1.3}
   .opt:hover{border-color:var(--ink2)}
   .opt.sel{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  .optwrap{display:inline-flex;align-items:stretch}
+  .optwrap .opt{border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
+  .minus{font-family:var(--body);font-size:1rem;font-weight:600;line-height:1.3;
+    padding:6px 13px;border-radius:0 99px 99px 0;cursor:pointer;
+    background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);
+    border-left:1px solid rgba(252,248,241,.3)}
+  .minus:hover{background:var(--rose);border-color:var(--rose)}
 
   .ratio{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--rule);
     font-family:var(--disp);font-weight:700;font-size:1rem;letter-spacing:-0.02em;color:var(--ink2)}
@@ -271,14 +279,14 @@
         <dd>10–12 oz steak or 8 oz fish, with a generous serving of mashed potatoes or mac and cheese. Scaled up, since this is now one of only two feedings.
           <span class="macro">≈ 1,100–1,250 cal · 70–80 g protein</span></dd>
         <dt>VEGETABLES</dt>
-        <dd>Spinach, kale, broccoli, salad, carrots or peppers. One serving, and make it leafy green or deep orange — those carry the most of what this diet is short on.</dd>
+        <dd>Spinach, kale, broccoli or salad. One serving, and make it leafy green or deep orange — those carry the most of what this diet is short on.</dd>
         <dt>PROTEIN SNACK · MID-AFTERNOON</dt>
-        <dd>Two cups of cottage cheese or Greek yogurt, not one. With nuts or trail mix stirred in.
+        <dd>Two cups of cottage cheese or Greek yogurt, not one. With nuts or seeds stirred in.
           <span class="macro">≈ 500 cal · 50 g protein</span></dd>
         <dt>FRUIT</dt>
         <dd>Berries, citrus, or an apple. The easiest way to cover more vitamins in one go — C, folate, potassium and antioxidants all arrive together.</dd>
         <dt>TOP UP AS NEEDED</dt>
-        <dd>Extra veg or beans, trail mix, nuts, or extra protein. With only two feedings, use this slot more often than you'd think — and beans are the single most useful thing on it, covering fiber, folate and magnesium at once.</dd>
+        <dd>Extra veg or beans, nuts or seeds, or extra protein. With only two feedings, use this slot more often than you'd think — and beans are the single most useful thing on it, covering fiber, folate and magnesium at once.</dd>
         <dt>WATER</dt>
         <dd>Tap once for each 8 oz glass through the day. Add chia to a glass when you want it — it brings fiber and omega-3s, but it counts here as hydration first.</dd>
       </dl>
@@ -401,8 +409,8 @@
     out.push({id:"m1",group:"EATING",name:"With a side of",sets:"Either one works",
       opts:["Mashed potatoes","Mac and cheese"], optVals:[[300,6],[450,17]]});
     out.push({id:"v0",group:"EATING",name:"Vegetables",sets:"Make it leafy green or deep orange",
-      opts:["Spinach or kale","Broccoli","Salad","Carrots or peppers"],
-      optVals:[[50,3],[55,4],[40,2],[50,1]], unscored:true});
+      opts:["Spinach or kale","Broccoli","Salad"],
+      optVals:[[50,3],[55,4],[40,2]], unscored:true});
     if(p.type==="lift"){
       out.push({id:"m2",group:"EATING",name:"Protein snack",sets:"Within 2 hours of lifting · make it a big one",
         opts:["Cottage cheese","Greek yogurt"], optVals:[[360,48],[300,46]], unscored:true});
@@ -413,8 +421,8 @@
     out.push({id:"f0",group:"EATING",name:"Fruit",sets:"The easiest way to cover more vitamins",
       opts:["Berries","Citrus","Apple or banana"], optVals:[[70,1],[60,1],[100,1]], unscored:true});
     out.push({id:"m4",group:"EATING",name:"Top up as needed",sets:"If the day feels short",
-      opts:["Extra veg or beans","Trail mix","Extra protein","Nuts or seeds"],
-      optVals:[[180,10],[170,5],[150,25],[170,6]], unscored:true, multi:true});
+      opts:["Extra veg or beans","Extra protein","Nuts or seeds"],
+      optVals:[[180,10],[150,25],[170,6]], unscored:true, multi:true});
     out.push({id:"m5",group:"EATING",name:"Water",sets:"Tap for each 8 oz glass",
       opts:["Plain","With chia"], optVals:[[0,0],[70,2.5]], maxServ:12, hydration:true});
     return out;
@@ -431,6 +439,19 @@
   }
   function totalServings(c){
     var n=0; Object.keys(c).forEach(function(k){ n+=c[k]; }); return n;
+  }
+
+  function adjust(id,oi,delta){
+    var it=items(selected).filter(function(x){ return x.id===id; })[0];
+    var max=(it && it.maxServ) || MAXSERV;
+    var picks=data.pick[selected]||{};
+    var c=counts(picks,id);
+    var n=(c[oi]||0)+delta;
+    if(n<=0) delete c[oi]; else c[oi]=Math.min(n,max);
+    if(totalServings(c)>0) picks[id]=c; else delete picks[id];
+    if(Object.keys(picks).length) data.pick[selected]=picks; else delete data.pick[selected];
+    setDone(selected,id,totalServings(c)>0);
+    save().then(function(){ renderCal(); renderPanel(); });
   }
 
   function tally(s){
@@ -458,7 +479,7 @@
     return '<div class="tally">'+
       '<div class="tlab"><span>Fuel for the day</span><b>'+word+'</b></div>'+
       '<div class="bar"><i class="'+(pct<0.85?"low":"")+'" style="width:'+(pct*100).toFixed(1)+'%"></i></div>'+
-      '<p class="foot">A rough guide, not a measurement — portion size moves it more than which option you pick. Tap an option again to add another serving.</p>'+
+      '<p class="foot">A rough guide, not a measurement — portion size moves it more than which option you pick. Tap an option again to add another serving, or &minus; to take one back.</p>'+
       '</div>';
   }
 
@@ -544,12 +565,42 @@
     };
   })();
 
+  /* Options are stored by index, so dropping one shifts every index after it.
+     Each version below remaps old saves once, folding a removed option into
+     whichever remaining one covers it. v3: trail mix -> nuts or seeds.
+     v4: carrots or peppers -> salad. */
+  var M4_REMAP={0:0,1:2,2:1,3:2};
+  var V0_REMAP={0:0,1:1,2:2,3:2};
+
+  function remapOpt(row,id,map){
+    if(!row || row[id]==null) return;
+    var old=counts(row,id), next={};
+    Object.keys(old).forEach(function(k){
+      var to=map[+k];
+      if(to!=null) next[to]=Math.min((next[to]||0)+old[k],MAXSERV);
+    });
+    if(Object.keys(next).length) row[id]=next; else delete row[id];
+  }
+
+  function migrate(){
+    var v=data.v||0;
+    if(v>=4) return false;
+    Object.keys(data.pick||{}).forEach(function(day){
+      var row=data.pick[day];
+      if(v<3) remapOpt(row,"m4",M4_REMAP);
+      if(v<4) remapOpt(row,"v0",V0_REMAP);
+    });
+    data.v=4;
+    return true;
+  }
+
   function load(){
     if(store.kind === "memory") document.getElementById("warn").style.display = "block";
     return store.get().then(function(raw){
       if(raw) data = JSON.parse(raw);
       data.bodyweight=data.bodyweight||[]; data.lifts=data.lifts||[];
       data.done=data.done||{}; data.pick=data.pick||{};
+      if(migrate()) return save();
     }).catch(function(){});
   }
   function save(){
@@ -643,8 +694,14 @@
         html+='<span class="opts">';
         it.opts.forEach(function(o,oi){
           var n = c[oi] || 0;
-          html+='<button class="opt'+(n>0?" sel":"")+'" data-opt="'+it.id+'" data-oi="'+oi+
-                '" aria-pressed="'+(n>0)+'">'+esc(o)+(n>1?'<span class="x">×'+n+'</span>':'')+'</button>';
+          var pill='<button class="opt'+(n>0?" sel":"")+'" data-opt="'+it.id+'" data-oi="'+oi+
+                '" aria-pressed="'+(n>0)+'" aria-label="'+
+                (n>0?'Add another '+esc(o)+', '+n+' logged':'Add '+esc(o))+'">'+
+                esc(o)+(n>1?'<span class="x">×'+n+'</span>':'')+'</button>';
+          html += n>0
+            ? '<span class="optwrap">'+pill+'<button class="minus" data-minus="'+it.id+
+              '" data-oi="'+oi+'" aria-label="Remove one '+esc(o)+'">&minus;</button></span>'
+            : pill;
         });
         html+='</span>';
       }
@@ -758,21 +815,11 @@
   document.body.addEventListener("click",function(e){
     var el=e.target.closest?e.target:null;
 
+    var minus=e.target.closest?e.target.closest("[data-minus]"):null;
+    if(minus){ adjust(minus.dataset.minus,+minus.dataset.oi,-1); return; }
+
     var opt=e.target.closest?e.target.closest("[data-opt]"):null;
-    if(opt){
-      var id=opt.dataset.opt, oi=+opt.dataset.oi;
-      var it=items(selected).filter(function(x){ return x.id===id; })[0];
-      var max=(it && it.maxServ) || MAXSERV;
-      var picks=data.pick[selected]||{};
-      var c=counts(picks,id);
-      var n=(c[oi]||0)+1;
-      if(n>max) delete c[oi]; else c[oi]=n;
-      if(totalServings(c)>0) picks[id]=c; else delete picks[id];
-      data.pick[selected]=picks;
-      setDone(selected,id,totalServings(c)>0);
-      save().then(function(){ renderCal(); renderPanel(); });
-      return;
-    }
+    if(opt){ adjust(opt.dataset.opt,+opt.dataset.oi,1); return; }
 
     var box=e.target.closest?e.target.closest("[data-item]"):null;
     if(box){
@@ -850,8 +897,10 @@
           bodyweight: incoming.bodyweight || [],
           lifts: incoming.lifts || [],
           done: incoming.done || {},
-          pick: incoming.pick || {}
+          pick: incoming.pick || {},
+          v: incoming.v
         };
+        migrate();
         save().then(function(){
           renderCal(); renderPanel(); renderWeight(); renderLifts();
           document.getElementById("backupMsg").textContent = "Restored.";
